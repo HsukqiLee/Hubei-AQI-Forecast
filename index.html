@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>湖北省空气质量预测分析 - 项目展示看板</title>
+    <!-- 引入高档字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-light: #3b82f6;
+            --accent: #10b981;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.02);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding-bottom: 80px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e3b8b 0%, #0f172a 100%);
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .header-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tag {
+            background-color: rgba(59, 130, 246, 0.2);
+            color: #93c5fd;
+            padding: 6px 16px;
+            border-radius: 100px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+            letter-spacing: -1px;
+            background: linear-gradient(to right, #ffffff, #93c5fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.15rem;
+            color: #94a3b8;
+            max-width: 700px;
+            margin: 0 auto 30px auto;
+            font-weight: 300;
+        }
+
+        .meta-grid {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            color: #cbd5e1;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 24px;
+        }
+
+        .meta-item strong {
+            color: white;
+        }
+
+        main {
+            max-width: 1400px;
+            margin: 40px auto 0 auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 40px;
+        }
+
+        .section-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--primary);
+        }
+
+        .section-title::after {
+            content: '';
+            flex-grow: 1;
+            height: 1px;
+            background-color: var(--border);
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            padding: 30px;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08);
+        }
+
+        .card.card-no-hover:hover {
+            transform: none;
+            box-shadow: var(--shadow);
+        }
+
+
+
+        /* 地图展示区 */
+        .map-container {
+            position: relative;
+            width: 100%;
+            height: 700px;
+            background: #f1f5f9;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .map-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* 数据指标卡片组 */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .metric-card {
+            background-color: #fafbfd;
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .metric-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-light);
+            margin: 10px 0;
+        }
+
+        .metric-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .metric-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* 图片画廊 */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .gallery-grid {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            .map-container {
+                height: 500px;
+            }
+        }
+
+        .gallery-card {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .gallery-image-wrapper {
+            position: relative;
+            background-color: #f1f5f9;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            aspect-ratio: 16/10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: zoom-in;
+        }
+
+        .gallery-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: var(--transition);
+        }
+
+        .gallery-image-wrapper:hover .gallery-image {
+            transform: scale(1.02);
+        }
+
+        .gallery-caption {
+            margin-top: 16px;
+        }
+
+        .gallery-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+        }
+
+        .gallery-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* 表格排版 */
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        th {
+            background-color: #f8fafc;
+            padding: 16px;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border);
+            color: var(--text-main);
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        tr:hover td {
+            background-color: #f8fafc;
+        }
+
+        /* 贡献度百分比进度条 */
+        .progress-bar-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .progress-bar-bg {
+            background-color: #e2e8f0;
+            height: 8px;
+            width: 100px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            background-color: var(--primary-light);
+            height: 100%;
+            border-radius: 10px;
+        }
+
+        /* 下载按钮区 */
+        .download-wrapper {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            border: 1px solid var(--primary);
+        }
+
+        .btn-primary:hover {
+            background-color: #172554;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: white;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .btn-secondary:hover {
+            background-color: #f8fafc;
+            border-color: #cbd5e1;
+            transform: translateY(-2px);
+        }
+
+        /* 简易灯箱放大效果 */
+        .lightbox {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 23, 42, 0.95);
+            justify-content: center;
+            align-items: center;
+            cursor: zoom-out;
+        }
+
+        .lightbox img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: var(--transition);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-content">
+            <span class="tag">Air Quality Forecast</span>
+            <h1>湖北省空气质量预测分析展示看板</h1>
+            <p class="subtitle">基于 LSTM 循环神经网络对湖北 17 地市的空气指标 (AQI) 进行预测，并实现多维可视化的完整数据分析项目展示。</p>
+            <div class="meta-grid">
+                <div class="meta-item">应用类型：<strong>机器学习与数据分析</strong></div>
+                <div class="meta-item">数据跨度：<strong>2025年 - 2026年 (真实数据采集)</strong></div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        
+
+
+        <!-- 模块1：交互式热力地图 -->
+        <section>
+            <h2 class="section-title">湖北省空气质量指数 (AQI) 交互式地图</h2>
+            <div class="card card-no-hover">
+                <div class="map-container">
+                    <!-- 通过 iframe 引入同源 outputs 目录下的 HTML -->
+                    <iframe class="map-iframe" src="outputs/map_hubei.html" title="湖北省空气质量预测图"></iframe>
+                </div>
+                <div style="margin-top: 16px; font-size: 0.9rem; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <span>提示：在上方地图上滑动鼠标或点击各市州，可悬浮查看对应未来的 AQI 预测数值与空气等级。</span>
+                    <a href="outputs/map_hubei.html" target="_blank" style="color: var(--primary-light); font-weight: 500; text-decoration: none;">在新窗口中独立打开地图 ↗</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- 模块2：模型预测核心指标 -->
+        <section>
+            <h2 class="section-title">LSTM 神经网络训练指标 (基于2025年-2026年数据)</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <span class="metric-label">时序验证 (R-squared)</span>
+                    <span class="metric-value">0.7682</span>
+                    <p class="metric-desc">在 2025 年时序验证集（后20%序列）上的 $R^2$ 拟合系数达到 76.8%，模型对非线性污染波动的捕捉效果非常显著。</p>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">均方误差 (MSE - 归一化值)</span>
+                    <span class="metric-value">0.1755</span>
+                    <p class="metric-desc">均方误差收敛至 0.1755，表明模型在回归预测中的拟合偏差控制在极低水平。</p>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">2026年1-6月外推测试 (R2 / MSE)</span>
+                    <span class="metric-value">0.0118 / 0.7625</span>
+                    <p class="metric-desc">在全新的 2026 年 1-6 月完全不重叠测试集上，时间外推 $R^2$ 仍为正值 (1.2%)，克服了季节交替和气象分布漂移带来的挑战。</p>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">核心参数 (Epochs)</span>
+                    <span class="metric-value">200次</span>
+                    <p class="metric-desc">LSTM 深度拟合经历 200 次全数据梯度迭代，采用 Adam 优化器，学习率 lr=0.0001，最终收敛平稳。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 模块3：数据可视化成果画廊 -->
+        <section>
+            <h2 class="section-title">数据分析与预测成果画廊</h2>
+            <div class="gallery-grid">
+                
+                <!-- 图 1 -->
+                <div class="card gallery-card">
+                    <div class="gallery-image-wrapper" onclick="openLightbox('outputs/AirTrends.png')">
+                        <img src="outputs/AirTrends.png" class="gallery-image" alt="17地市历史走势">
+                    </div>
+                    <div class="gallery-caption">
+                        <h4 class="gallery-title">17 地市 2025 全年 AQI 历史总走向</h4>
+                        <p class="gallery-desc">反映 2025 年湖北全省空气质量的时间波动趋势，表现出强烈的大范围气象系统同步趋同性。</p>
+                    </div>
+                </div>
+
+                <!-- 图 2 -->
+                <div class="card gallery-card">
+                    <div class="gallery-image-wrapper" onclick="openLightbox('outputs/Correlation_Heatmap.png')">
+                        <img src="outputs/Correlation_Heatmap.png" class="gallery-image" alt="相关性热力图">
+                    </div>
+                    <div class="gallery-caption">
+                        <h4 class="gallery-title">空气指标相关性热力图 (Pearson)</h4>
+                        <p class="gallery-desc">直观揭示 PM2.5 (r=0.76) 和 PM10 (r=0.81) 对 AQI 的强主导性，为特征选择提供了科学理论依据。</p>
+                    </div>
+                </div>
+
+                <!-- 图 3 -->
+                <div class="card gallery-card">
+                    <div class="gallery-image-wrapper" onclick="openLightbox('outputs/Actual_vs_Predicted.png')">
+                        <img src="outputs/Actual_vs_Predicted.png" class="gallery-image" alt="验证集对比">
+                    </div>
+                    <div class="gallery-caption">
+                        <h4 class="gallery-title">LSTM 验证集预测值 vs 真实值对比</h4>
+                        <p class="gallery-desc">检验模型在未参与训练的数据上的外推性能，波形跟踪紧密，泛化性能强。</p>
+                    </div>
+                </div>
+
+                <!-- 图 4 -->
+                <div class="card gallery-card">
+                    <div class="gallery-image-wrapper" onclick="openLightbox('outputs/AirPrediction.png')">
+                        <img src="outputs/AirPrediction.png" class="gallery-image" alt="17城市对比子图">
+                    </div>
+                    <div class="gallery-caption">
+                        <h4 class="gallery-title">17 城市未来一日预测与历史融合对比 (子图)</h4>
+                        <p class="gallery-desc">排版展示 17 个城市/林区的时序图，尾部的**红色高亮散点**为模型预测出的未来一日 AQI 值。</p>
+                    </div>
+                </div>
+
+                <!-- 图 5 -->
+                <div class="card gallery-card">
+                    <div class="gallery-image-wrapper" onclick="openLightbox('outputs/Test_2026_Comparison.png')">
+                        <img src="outputs/Test_2026_Comparison.png" class="gallery-image" alt="独立外推验证对比图">
+                    </div>
+                    <div class="gallery-caption">
+                        <h4 class="gallery-title">2026年1-6月跨时间独立外推预测对比图</h4>
+                        <p class="gallery-desc">将训练于 2025 全年的 LSTM 模型，在 2026 年 1-6 月外推时间段上与真实 AQI 数据进行滚动对比，直观展示了季节性气象分布偏移下的模型拟合度。</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+
+
+    </main>
+
+    <!-- 灯箱图片放大效果 -->
+    <div id="lightbox" class="lightbox" onclick="closeLightbox()">
+        <img id="lightbox-img" src="" alt="放大查看">
+    </div>
+
+    <script>
+        function openLightbox(imageSrc) {
+            const lightbox = document.getElementById('lightbox');
+            const lightboxImg = document.getElementById('lightbox-img');
+            lightboxImg.src = imageSrc;
+            lightbox.style.display = 'flex';
+        }
+
+        function closeLightbox() {
+            const lightbox = document.getElementById('lightbox');
+            lightbox.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
