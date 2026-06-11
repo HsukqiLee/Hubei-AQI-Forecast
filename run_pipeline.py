@@ -11,7 +11,8 @@ from src.data_exploration import explore_data
 from src.model_training import train_model
 from src.visualization import run_visualization
 from src.out_of_sample_test import evaluate_on_test_data
-
+from src.generate_contribution_excel import generate_contribution_table
+from src.fill_report import fill_report
 
 def main():
     print("====================================================")
@@ -42,7 +43,14 @@ def main():
     except Exception as e:
         print(f"运行样本外验证失败: {e}")
     
-
+    # 6. 生成贡献表格
+    print("\n--- 步骤 6：生成贡献度 Excel 文件 ---")
+    generate_contribution_table()
+    
+    # 7. 填充 docx 报告
+    print("\n--- 步骤 7：自动填充最终 Word 报告 ---")
+    fill_report()
+    
     print("\n====================================================")
     print("所有步骤均已成功完成！")
     print("生成的交付物：")
@@ -55,6 +63,8 @@ def main():
     print("7. [交互式 Pyecharts 地图] map_hubei.html")
     print("8. [样本外测试数据] AirCondition_Test_2026.csv")
     print("9. [样本外对比图] Test_2026_Comparison.png")
+    print("10. [小组贡献表] 小组分工与贡献表.xlsx")
+    print("11. [完成的 Word 报告] 实验报告-湖北省空气质量预测分析-[姓名].docx")
     print("====================================================")
 
 if __name__ == "__main__":

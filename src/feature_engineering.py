@@ -27,7 +27,7 @@ def preprocess_features():
     data['season'] = data['month'] % 12 // 3 + 1
 
     # 2. 我们将仅在训练行（每个城市时间轴的前 80%）上拟合缩放器
-    numerical_cols = ['PM2.5', 'PM10', 'O3', 'SO2', 'NO2', 'CO', 'AQI']
+    numerical_cols = ['PM2.5', 'PM10', 'O3', 'SO2', 'NO2', 'CO', 'AQI', 'temperature', 'precipitation', 'wind_speed']
 
     train_idx = []
     for c in cities:
@@ -60,20 +60,22 @@ def preprocess_features():
     for lag in range(1, 8):
         data_scaled[f'AQI_lag_{lag}'] = data_scaled.groupby('city')['AQI'].shift(lag)
 
+    # 增加移动平均特征以提取趋势
+    data_scaled['AQI_rolling_3'] = data_scaled.groupby('city')['AQI'].transform(lambda x: x.shift(1).rolling(3).mean())
+    data_scaled['AQI_rolling_7'] = data_scaled.groupby('city')['AQI'].transform(lambda x: x.shift(1).rolling(7).mean())
+
     data_scaled = data_scaled.fillna(0)
 
-    # 4. 使用仅在训练行上拟合的 SelectKBest 进行特征选择
-    X = data_scaled.drop(columns=['AQI', 'city', 'date'])
+    # 4. 准备输入特征 X (保留 AQI 作为自回归的重要特征，仅丢弃无关的 city 和 date)
+    X = data_scaled.drop(columns=['city', 'date'])
     y = data_scaled['AQI']
 
-    selector = SelectKBest(score_func=f_regression, k=10)
-    selector.fit(X.loc[train_idx], y.loc[train_idx])
-    selected_features = list(X.columns[selector.get_support()])
-    print("从训练集选择的特征 (k=10):", selected_features)
-    joblib.dump(selected_features, "./models/selected_features.pkl")
-
-    X_selected = X[selected_features].values
-    return data_scaled, X_selected, y.values, scaler, selected_features
+    all_features = list(X.columns)
+    print("使用的特征 ({0}个):".format(len(all_features)), all_features)
+    
+    # 移除原有的 SelectKBest 逻辑，改为全量特征输出
+    X_all = X.values
+    return data_scaled, X_all, y.values, scaler, all_features
 
 
 if __name__ == "__main__":

@@ -25,8 +25,8 @@ CITY_COORDINATES = {
     "神农架林区": {"lat": 31.744449, "lon": 110.671525}
 }
 
-# 2025年 365 天时间范围 (从 2025-01-01 到 2025-12-31)
-START_DATE = "2025-01-01"
+# 2023-2025年 3年时间范围 (从 2023-01-01 到 2025-12-31)
+START_DATE = "2023-01-01"
 END_DATE = "2025-12-31"
 
 # IAQI 换算函数 (依据中国国标 GB3095-2012 / HJ633-2012)
@@ -66,6 +66,11 @@ def fetch_and_save_data():
     print("="*60)
     
     for city, coord in CITY_COORDINATES.items():
+        file_path = f"./data/历史日数据_{city}.xlsx"
+        if os.path.exists(file_path):
+            print(f"\n[跳过] {city} 数据已存在，跳过重新下载...")
+            continue
+            
         print(f"\n[正在获取] {city} (Lat: {coord['lat']:.4f}, Lon: {coord['lon']:.4f})...")
         
         # 接口参数
@@ -141,16 +146,16 @@ def fetch_and_save_data():
             # 导出为 Excel 文件
             file_path = f"./data/历史日数据_{city}.xlsx"
             df_final.to_excel(file_path, index=False)
-            print(f"✅ 成功生成真实日历史数据: {file_path} (共 {len(df_final)} 天)")
+            print(f"[成功] 成功生成真实日历史数据: {file_path} (共 {len(df_final)} 天)")
             
             # 延迟以示礼貌
             time.sleep(0.3)
             
         except Exception as e:
-            print(f"❌ 获取 {city} 历史数据时发生异常: {e}")
+            print(f"[错误] 获取 {city} 历史数据时发生异常: {e}")
             
     print("\n" + "="*60)
-    print("🎉 2026年湖北省17地市真实空气历史数据获取并生成完毕！")
+    print("[完成] 2023-2025年湖北省17地市真实空气历史数据获取并生成完毕！")
     print("="*60)
 
 if __name__ == "__main__":

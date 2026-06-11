@@ -16,7 +16,7 @@ def preprocess_data():
         city_name = cities[i]
         path = "./data/历史日数据_{}.xlsx".format(city_name)
         if not os.path.exists(path):
-            raise FileNotFoundError(f"缺失数据文件: {path}。请先运行 fetch_real_2026_data.py 获取真实数据。")
+            raise FileNotFoundError(f"缺失数据文件: {path}。请先运行 fetch_historical_data.py 获取真实数据。")
             
         print(f"正在读取 {city_name} 的数据...")
         city_data = pd.read_excel(path)
@@ -41,6 +41,22 @@ def preprocess_data():
     # 保存数据框
     os.makedirs("./outputs", exist_ok=True)
     output_df = pd.DataFrame(data=data, columns=columns)
+    
+    # 融合气象数据
+    weather_path = "outputs/WeatherData.csv"
+    if os.path.exists(weather_path):
+        print("正在融合气象数据...")
+        weather_df = pd.read_csv(weather_path)
+        output_df['date'] = pd.to_datetime(output_df['date']).dt.strftime('%Y-%m-%d')
+        weather_df['date'] = pd.to_datetime(weather_df['date']).dt.strftime('%Y-%m-%d')
+        output_df = pd.merge(output_df, weather_df, on=['city', 'date'], how='left')
+        
+        # 填充缺失的气象数据
+        for col in ['temperature', 'precipitation', 'wind_speed']:
+            output_df[col] = output_df.groupby('city')[col].ffill().fillna(0)
+    else:
+        print("警告: 未找到 outputs/WeatherData.csv，跳过气象数据融合。")
+
     output_df.to_csv("outputs/AirCondition.csv", index=False)
     print("合并后的数据已保存至 outputs/AirCondition.csv")
 

@@ -403,10 +403,11 @@
 
     <header>
         <div class="header-content">
-            <span class="tag">Air Quality Forecast</span>
+            <span class="tag">[大学名称]项目</span>
             <h1>湖北省空气质量预测分析展示看板</h1>
             <p class="subtitle">基于 LSTM 循环神经网络对湖北 17 地市的空气指标 (AQI) 进行预测，并实现多维可视化的完整数据分析项目展示。</p>
             <div class="meta-grid">
+                <div class="meta-item">课程名称：<strong>数据结构与程序设计 (Python)</strong></div>
                 <div class="meta-item">应用类型：<strong>机器学习与数据分析</strong></div>
                 <div class="meta-item">数据跨度：<strong>2025年 - 2026年 (真实数据采集)</strong></div>
             </div>
@@ -522,7 +523,89 @@
             </div>
         </section>
 
+        <!-- 模块4：小组成员分工 -->
+        <section>
+            <h2 class="section-title">小组成员与具体职责</h2>
+            <div class="card">
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>姓名</th>
+                                <th>角色</th>
+                                <th>学号</th>
+                                <th>主要负责代码模块</th>
+                                <th>贡献度占比</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>[组长姓名]</strong></td>
+                                <td>组长</td>
+                                <td>[组长学号]</td>
+                                <td>LSTM模型构建与训练 (`src/model_training.py`) & 流水线整合</td>
+                                <td>
+                                    <div class="progress-bar-wrapper">
+                                        <span>28%</span>
+                                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 28%"></div></div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                 <td>[组员1姓名]</td>
+                                 <td>组员</td>
+                                 <td>[组员1学号]</td>
+                                <td>数据获取与合并 (`src/fetch_real_2026_data.py`, `data_preprocessing.py`)</td>
+                                <td>
+                                    <div class="progress-bar-wrapper">
+                                        <span>24%</span>
+                                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 24%"></div></div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                 <td>[组员2姓名]</td>
+                                 <td>组员</td>
+                                 <td>[组员2学号]</td>
+                                <td>数据探索与特征选择 (`src/data_exploration.py`, `feature_engineering.py`)</td>
+                                <td>
+                                    <div class="progress-bar-wrapper">
+                                        <span>24%</span>
+                                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 24%"></div></div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                 <td>[组员3姓名]</td>
+                                 <td>组员</td>
+                                 <td>[组员3学号]</td>
+                                <td>静态与交互可视化渲染 (`src/visualization.py`) & 报告自动填充</td>
+                                <td>
+                                    <div class="progress-bar-wrapper">
+                                        <span>24%</span>
+                                        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 24%"></div></div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
 
+        <!-- 模块5：项目提交物下载 -->
+        <section>
+            <h2 class="section-title">课程交付物资源下载</h2>
+            <div class="card">
+                <p style="margin-bottom: 20px; color: var(--text-muted); font-size: 0.95rem;">小组成员已将自动生成的 Word 实验报告（包含本轮真实运行参数）、Excel 贡献分工表以及课堂汇报的发言词稿提交至仓库中。您可以通过以下按钮直接在线查看或下载：</p>
+                <div class="download-wrapper">
+                    <!-- 指向本地 reports subfolder 里的生成物 -->
+                    <a href="reports/实验报告-湖北省空气质量预测分析-[姓名].docx" class="btn btn-primary" download>下载生成的 Word 实验报告书</a>
+                    <a href="reports/小组分工与贡献表.xlsx" class="btn btn-secondary" download>下载 Excel 分工贡献表</a>
+                    <a href="reports/项目汇报发言稿.md" class="btn btn-secondary" target="_blank">查看课堂汇报发言词逐字稿 (Markdown)</a>
+                </div>
+            </div>
+        </section>
 
     </main>
 

@@ -13,20 +13,53 @@ import json
 # 导入预处理函数
 from src.feature_engineering import preprocess_features
 
-# LSTM 模型定义
+# LSTM+Attention 模型定义
+class Attention(nn.Module):
+    def __init__(self, hidden_size):
+        super(Attention, self).__init__()
+        # 使用线性层计算特征空间的注意力打分
+        self.attn = nn.Linear(hidden_size, 1, bias=False)
+
+    def forward(self, lstm_out):
+        # lstm_out shape: (batch_size, seq_len, hidden_size)
+        attn_weights = torch.softmax(self.attn(lstm_out), dim=1) # (batch_size, seq_len, 1)
+        # context = attn_weights * lstm_out -> sum over seq_len
+        context = torch.sum(attn_weights * lstm_out, dim=1)      # (batch_size, hidden_size)
+        return context, attn_weights
+
 class LSTMModel(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, output_size):
         super(LSTMModel, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_size, output_size)
+        # 加深：支持多层 LSTM，如果层数>1则默认开启层间 dropout
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, 
+                            dropout=0.2 if num_layers > 1 else 0)
+        
+        # 引入注意力机制
+        self.attention = Attention(hidden_size)
+        
+        # 加宽：加入正则化和更厚实的全连接层
+        self.dropout = nn.Dropout(0.3)
+        self.fc = nn.Sequential(
+            nn.Linear(hidden_size, hidden_size // 2),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(hidden_size // 2, output_size)
+        )
  
     def forward(self, x):
         h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
         c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
+        
         out, _ = self.lstm(x, (h0, c0))
-        out = self.fc(out[:, -1, :])
+        # out: (batch, seq_len, hidden_size)
+        
+        # 使用注意力层从整个 14 天的隐状态中提取最关键上下文
+        context, _ = self.attention(out)
+        
+        out = self.dropout(context)
+        out = self.fc(out)
         return out
 
 def create_sequences(data, target, time_steps=30):
@@ -40,7 +73,7 @@ def train_model():
     print("开始进行 LSTM 模型训练流程...")
     
     # 1. 获取特征
-    data_scaled, X_selected, y, scaler, selected_features = preprocess_features()
+    data_scaled, X_selected, y, scaler, all_features = preprocess_features()
     
     # 2. 提取序列
     cities = [
@@ -51,13 +84,13 @@ def train_model():
     
     X_selected = np.array(X_selected)
     y = np.array(y)
-    time_steps = 30
+    time_steps = 14
     clip_size = len(X_selected) // len(cities)
     
-    X_train_list, y_train_list = None, None
-    X_test_list = None
-    sample_cities = []
-    val_city_labels = None
+    X_train_list, y_train_list = [], []
+    X_val_list, y_val_list = [], []
+    X_test_list = []
+    city_train_labels, city_val_labels = [], []
     AQI = []
     
     original_data = pd.read_csv("outputs/AirCondition.csv")
@@ -66,32 +99,37 @@ def train_model():
         city_X = X_selected[i*clip_size:(i+1)*clip_size]
         city_y = y[i*clip_size:(i+1)*clip_size]
         
-        # 创建长度为 30 的序列
+        # 创建长度为 14 的序列
         X_seq, y_seq = create_sequences(city_X, city_y, time_steps)
         
-        X_train_list = X_seq if X_train_list is None else np.concatenate([X_train_list, X_seq], axis=0)
-        y_train_list = y_seq if y_train_list is None else np.concatenate([y_train_list, y_seq], axis=0)
-        # 为每个生成的序列记录城市标签
-        city_label_seq = [cities[i]] * len(X_seq)
-        sample_cities = city_label_seq if len(sample_cities) == 0 else sample_cities + city_label_seq
+        # 按照城市内部的时间序列前 80% 作为训练，后 20% 作为验证
+        city_train_size = int(0.8 * len(X_seq))
         
-        # 测试序列是该城市最后 30 天的数据
+        X_train_list.append(X_seq[:city_train_size])
+        y_train_list.append(y_seq[:city_train_size])
+        city_train_labels.extend([cities[i]] * city_train_size)
+        
+        X_val_list.append(X_seq[city_train_size:])
+        y_val_list.append(y_seq[city_train_size:])
+        city_val_labels.extend([cities[i]] * (len(X_seq) - city_train_size))
+        
+        # 测试序列是该城市最后 time_steps 天的数据
         test_seq = np.array([city_X[-time_steps:]])
-        X_test_list = test_seq if X_test_list is None else np.concatenate([X_test_list, test_seq], axis=0)
+        X_test_list.append(test_seq)
         
         # 保存历史 AQI（来自 original_data）
         AQI.append(list(original_data["AQI"][i*clip_size:(i+1)*clip_size].values))
         
-    X_tensor = torch.tensor(X_train_list, dtype=torch.float32)
-    y_tensor = torch.tensor(y_train_list, dtype=torch.float32).view(-1, 1)
-    X_npred = torch.tensor(X_test_list, dtype=torch.float32)
+    X_train_tensor = torch.tensor(np.concatenate(X_train_list, axis=0), dtype=torch.float32)
+    y_train_tensor = torch.tensor(np.concatenate(y_train_list, axis=0), dtype=torch.float32).view(-1, 1)
     
-    # 3. 训练-测试拆分（80% 训练，20% 验证）
-    train_size = int(0.8 * len(X_tensor))
-    X_train_tensor, X_val_tensor = X_tensor[:train_size], X_tensor[train_size:]
-    y_train_tensor, y_val_tensor = y_tensor[:train_size], y_tensor[train_size:]
-    city_labels_array = np.array(sample_cities)
-    city_train_labels, city_val_labels = city_labels_array[:train_size], city_labels_array[train_size:]
+    X_val_tensor = torch.tensor(np.concatenate(X_val_list, axis=0), dtype=torch.float32)
+    y_val_tensor = torch.tensor(np.concatenate(y_val_list, axis=0), dtype=torch.float32).view(-1, 1)
+    
+    X_npred = torch.tensor(np.concatenate(X_test_list, axis=0), dtype=torch.float32)
+    
+    city_train_labels = np.array(city_train_labels)
+    city_val_labels = np.array(city_val_labels)
     
     train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
     val_dataset = TensorDataset(X_val_tensor, y_val_tensor)
@@ -99,14 +137,15 @@ def train_model():
     val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
     
     # 4. 初始化模型
-    input_size = X_train_tensor.shape[2]
-    hidden_size = 64
-    num_layers = 2
-    output_size = 1
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    input_size = len(all_features)
+    # 架构加深加宽：2层LSTM，256个神经元
+    model = LSTMModel(input_size=input_size, hidden_size=256, num_layers=2, output_size=1).to(device)
+    criterion = nn.SmoothL1Loss() # Huber Loss 适用于包含异常尖峰的空气质量
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4) # 稍微增加L2正则防止大数据集深网络过拟合
     
-    model = LSTMModel(input_size, hidden_size, num_layers, output_size)
-    criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001, weight_decay=1e-5)
+    # 替换为基于余弦退火的学习率调度器 (取代 ReduceLROnPlateau)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100, eta_min=1e-5)
     
     # 5. 训练循环
     num_epochs = 200
@@ -120,6 +159,7 @@ def train_model():
         model.train()
         batch_losses = []
         for batch_X, batch_y in train_loader:
+            batch_X, batch_y = batch_X.to(device), batch_y.to(device)
             outputs = model(batch_X)
             loss = criterion(outputs, batch_y)
             
@@ -136,10 +176,13 @@ def train_model():
         val_losses = []
         with torch.no_grad():
             for vX, vy in val_loader:
+                vX, vy = vX.to(device), vy.to(device)
                 vpred = model(vX)
                 vloss = criterion(vpred, vy)
                 val_losses.append(vloss.item())
         val_loss = np.mean(val_losses) if len(val_losses) > 0 else float('nan')
+        
+        scheduler.step()
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
@@ -168,6 +211,7 @@ def train_model():
     model.eval()
     # 加载最佳模型进行评估
     model.load_state_dict(torch.load("./models/lstm_model.pth"))
+    model.to('cpu')
     model.eval()
     with torch.no_grad():
         y_val_pred = model(X_val_tensor).numpy()

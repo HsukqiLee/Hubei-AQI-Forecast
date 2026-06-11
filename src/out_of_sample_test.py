@@ -14,7 +14,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # 从训练脚本导入模型定义和坐标
 from src.model_training import LSTMModel, create_sequences
-from src.fetch_real_2026_data import CITY_COORDINATES, get_china_aqi
+from src.fetch_historical_data import CITY_COORDINATES, get_china_aqi
 
 # 2026年 1-6月的外推验证时间范围 (152天，从 2026-01-01 到 2026-06-01)
 TEST_START = "2026-01-01"
@@ -97,6 +97,17 @@ def evaluate_on_test_data():
         fetch_test_data()
         
     test_data = pd.read_csv("outputs/AirCondition_Test_2026.csv")
+    test_data['date'] = pd.to_datetime(test_data['date']).dt.strftime('%Y-%m-%d')
+    
+    # 融合气象数据
+    weather_path = "outputs/WeatherData.csv"
+    if os.path.exists(weather_path):
+        weather_df = pd.read_csv(weather_path)
+        weather_df['date'] = pd.to_datetime(weather_df['date']).dt.strftime('%Y-%m-%d')
+        test_data = pd.merge(test_data, weather_df, on=['city', 'date'], how='left')
+        for col in ['temperature', 'precipitation', 'wind_speed']:
+            test_data[col] = test_data.groupby('city')[col].ffill().fillna(0)
+            
     test_data['date'] = pd.to_datetime(test_data['date'])
     
     # 1. 加载模型及缩放器/特征参数
@@ -104,10 +115,9 @@ def evaluate_on_test_data():
         raise FileNotFoundError("未找到已训练好的模型或参数文件。请先运行 run_pipeline.py 训练模型。")
         
     scaler = joblib.load("./models/scaler.pkl")
-    selected_features = joblib.load("./models/selected_features.pkl")
     
     # 2. 特征工程 (应用与训练集相同的归一化和特征处理)
-    numerical_cols = ['PM2.5', 'PM10', 'O3', 'SO2', 'NO2', 'CO', 'AQI']
+    numerical_cols = ['PM2.5', 'PM10', 'O3', 'SO2', 'NO2', 'CO', 'AQI', 'temperature', 'precipitation', 'wind_speed']
     test_scaled_arr = scaler.transform(test_data[numerical_cols])
     test_scaled = pd.DataFrame(test_scaled_arr, columns=numerical_cols)
     test_scaled['city'] = test_data['city'].values
@@ -122,17 +132,22 @@ def evaluate_on_test_data():
     # 滞后特征
     for lag in range(1, 8):
         test_scaled[f'AQI_lag_{lag}'] = test_scaled.groupby('city')['AQI'].shift(lag)
+
+    # 增加移动平均特征以提取趋势
+    test_scaled['AQI_rolling_3'] = test_scaled.groupby('city')['AQI'].transform(lambda x: x.shift(1).rolling(3).mean())
+    test_scaled['AQI_rolling_7'] = test_scaled.groupby('city')['AQI'].transform(lambda x: x.shift(1).rolling(7).mean())
+
     test_scaled = test_scaled.fillna(0)
     
-    # 3. 筛选前10个特征
-    X_test_all = test_scaled[selected_features]
+    # 3. 准备特征 (丢弃无关的 city 和 date)
+    X_test_all = test_scaled.drop(columns=['city', 'date'])
     y_test_all = test_scaled['AQI']
     
     # 4. 滑动窗口分割 (30天滑动窗口)
     X_selected_arr = np.array(X_test_all)
     y_arr = np.array(y_test_all)
     
-    time_steps = 30
+    time_steps = 14
     clip_size = len(test_scaled) // len(CITY_COORDINATES)
     
     X_test_seq, y_test_seq = None, None
@@ -151,7 +166,7 @@ def evaluate_on_test_data():
     
     # 5. 加载模型结构与权重
     input_size = X_tensor.shape[2]
-    model = LSTMModel(input_size, hidden_size=64, num_layers=2, output_size=1)
+    model = LSTMModel(input_size, hidden_size=256, num_layers=2, output_size=1)
     model.load_state_dict(torch.load("./models/lstm_model.pth"))
     model.eval()
     
@@ -162,7 +177,7 @@ def evaluate_on_test_data():
     # 计算评估指标
     mse = mean_squared_error(y_tensor.numpy(), y_pred)
     r2 = r2_score(y_tensor.numpy(), y_pred)
-    print(f"\n📈 4-5月独立测试集外推评估结果:")
+    print(f"\n[独立测试集] 4-5月独立测试集外推评估结果:")
     print(f"   - 均方误差 (MSE - 归一化): {mse:.6f}")
     print(f"   - 决定系数 (R2): {r2:.6f}")
     
@@ -188,7 +203,7 @@ def evaluate_on_test_data():
     plt.savefig("outputs/Test_2026_Comparison.png", dpi=300)
     plt.close()
     
-    print("✅ 预测对比图已保存至 outputs/Test_2026_Comparison.png")
+    print("预测对比图已保存至 outputs/Test_2026_Comparison.png")
     
     # 将此结果保存至 metrics 中，以便随时读取
     test_metrics = {"mse": float(mse), "r2": float(r2)}
